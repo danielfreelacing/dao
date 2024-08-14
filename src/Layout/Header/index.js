@@ -47,9 +47,19 @@ class Header extends React.Component {
     setToLS("vegan-theme", "light");
   };
 
+  // TODO: This shouldn't be in a react component
   async walletConnect() {
+    // TODO: abstract out calls to getting the metamask global
+    const { ethereum } = window;
+    if (ethereum == null) {
+      // TODO: This should instead be handled in the presentation logic,
+      // where if they haven't installed metamask you describe what a wallet is first
+      // before sending them here.
+      window.location.href = "https://metamask.io/download/";
+    }
+
     try {
-      await window.ethereum.request({
+      await ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: web3.utils.toHex(1666600000) }],
       });
@@ -57,7 +67,7 @@ class Header extends React.Component {
       // This error code indicates that the chain has not been added to MetaMask.
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
+          await ethereum.request({
             method: "wallet_addEthereumChain",
             params: [
               {
@@ -73,7 +83,7 @@ class Header extends React.Component {
               },
             ],
           });
-          await window.ethereum.request({
+          await ethereum.request({
             method: "wallet_switchEthereumChain",
             params: [{ chainId: web3.utils.toHex(1666600000) }],
           });
@@ -81,8 +91,8 @@ class Header extends React.Component {
       }
     }
 
-    if (window.ethereum) {
-      window.web3 = new Web3(window.ethereum);
+    if (ethereum) {
+      window.web3 = new Web3(ethereum);
       await window.ethereum.enable();
       const clientWeb3 = window.web3;
       const accounts = await clientWeb3.eth.getAccounts();
@@ -92,6 +102,8 @@ class Header extends React.Component {
       this.props.dispatch({ type: "SET_ACCOUNT", payload: accounts[0] });
       await this.getPosition(accounts[0]);
     } else if (window.web3) {
+      // TODO: this conditional makes no sense. metamask can make its own web3 binding.
+      // It's also very duplicated
       window.web3 = new Web3(window.web3.currentProvider);
       const clientWeb3 = window.web3;
       const accounts = await clientWeb3.eth.getAccounts();
@@ -102,7 +114,6 @@ class Header extends React.Component {
       await this.getPosition(accounts[0]);
     }
 
-    const { ethereum } = window;
     ethereum.on("accountsChanged", async (accounts) => {
       try {
         accounts = web3.utils.toChecksumAddress(accounts + "");
@@ -121,8 +132,6 @@ class Header extends React.Component {
         params: [{ chainId: web3.utils.toHex(1666600000) }],
       });
     });
-
-    // this.checkDashBoard(this.state.linkedAccount)
   }
 
   async getPosition(address) {
