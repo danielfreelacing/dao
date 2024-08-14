@@ -56,6 +56,7 @@ class Header extends React.Component {
       // where if they haven't installed metamask you describe what a wallet is first
       // before sending them here.
       window.location.href = "https://metamask.io/download/";
+      return;
     }
 
     try {
